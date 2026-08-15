@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kebun Rezeki — Arus Kas Keluarga</title>
+<!-- Panggil Library Chart.js dari CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg: #F4F7F1;
+  --panel: #FFFFFF;
+  --ink: #1E2B1E;
+  --forest: #204A2C;
+  --sage: #6F9A6A;
+  --sage-pale: #DCEBD8;
+  --sage-paler: #EEF5EC;
+  --amber: #D6A24C;
+  --amber-pale: #F7E9CE;
+  --danger: #C24C42;
+  --danger-pale: #F7DFDC;
+  --line: #DDE6D8;
+  --shadow: 0 1px 2px rgba(32,74,44,.06), 0 6px 16px rgba(32,74,44,.06);
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:'Inter',sans-serif; font-size:14px; line-height:1.45;
+  padding-bottom:60px;
+}
+h1,h2,h3,.display{font-family:'Fraunces',serif;}
+.wrap{max-width:1320px;margin:0 auto;padding:20px 22px 60px;}
+
+/* auth screen */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(circle at 20% 20%, #E7F1E3, var(--bg) 60%);}
+.auth-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:28px 26px;width:100%;max-width:380px;box-shadow:0 8px 30px rgba(32,74,44,.12);}
+.auth-brand{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.auth-brand .leaf{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--sage),var(--forest));display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;}
+.auth-brand h1{font-size:19px;margin:0;color:var(--forest);}
+.auth-brand span{display:block;font-size:11px;color:#6b7a63;font-weight:500;}
+.auth-tabs{display:flex;background:var(--sage-paler);border-radius:10px;padding:3px;margin-bottom:18px;}
+.auth-tab-btn{flex:1;border:none;background:transparent;padding:9px;border-radius:8px;font-weight:700;font-size:12.5px;color:var(--forest);cursor:pointer;}
+.auth-tab-btn.active{background:#fff;box-shadow:var(--shadow);}
+.auth-form{display:none;}
+.auth-form.active{display:block;}
+.auth-form label{margin-bottom:4px;}
+.auth-error{background:var(--danger-pale);color:var(--danger);border-radius:9px;padding:9px 11px;margin-top:12px;font-size:12px;font-weight:600;}
+.auth-note{font-size:11px;color:#8a9a82;margin-top:14px;line-height:1.5;}
+.whoami{font-size:12px;color:#5c6c55;font-weight:600;display:flex;align-items:center;gap:8px;background:var(--sage-paler);padding:6px 10px;border-radius:999px;}
+.whoami button{border:none;background:none;color:var(--forest);font-weight:700;text-decoration:underline;cursor:pointer;font-size:11.5px;}
+
+/* header */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand .leaf{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--sage),var(--forest));display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;}
+.brand h1{font-size:20px;margin:0;color:var(--forest);font-weight:700;}
+.brand span{display:block;font-size:11px;color:#6b7a63;font-weight:500;}
+
+.period-picker{display:flex;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 8px;box-shadow:var(--shadow);}
+.period-picker select{border:none;background:var(--sage-paler);color:var(--forest);font-weight:700;font-family:'Fraunces',serif;font-size:15px;padding:7px 10px;border-radius:8px;cursor:pointer;}
+.period-picker select:focus{outline:2px solid var(--sage);}
+
+.tabs{display:flex;gap:6px;margin:6px 0 22px;flex-wrap:wrap;}
+.tab-btn{border:1px solid var(--line);background:var(--panel);color:var(--forest);padding:9px 16px;border-radius:999px;font-weight:600;font-size:13px;cursor:pointer;transition:.15s;}
+.tab-btn:hover{border-color:var(--sage);}
+.tab-btn.active{background:var(--forest);color:#fff;border-color:var(--forest);}
+
+.view{display:none;}
+.view.active{display:block;}
+
+.dash-toggle{display:inline-flex;gap:4px;background:var(--sage-paler);border-radius:999px;padding:4px;margin-bottom:18px;}
+.toggle-btn{border:none;background:transparent;color:var(--forest);padding:8px 18px;border-radius:999px;font-weight:700;font-size:12.5px;cursor:pointer;}
+.toggle-btn.active{background:var(--forest);color:#fff;}
+.dash-sub{display:none;}
+.dash-sub.active{display:block;}
+
+/* KPI cards */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px;}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--sage);}
+.kpi.income::before{background:var(--forest);}
+.kpi.expense::before{background:var(--danger);}
+.kpi.save::before{background:var(--amber);}
+.kpi .lbl{font-size:11.5px;color:#66765f;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+.kpi .val{font-family:'Fraunces',serif;font-size:21px;font-weight:700;color:var(--forest);margin-top:4px;}
+.kpi.expense .val{color:var(--danger);}
+.kpi.save .val{color:#a97c1e;}
+@media(max-width:1100px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
+
+/* grid panels */
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
+.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-bottom:14px;}
+@media(max-width:1100px){.grid4{grid-template-columns:repeat(2,1fr);}.grid2{grid-template-columns:1fr;}}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--shadow);}
+.panel h3{margin:0 0 10px;font-size:14px;color:var(--forest);font-weight:700;display:flex;align-items:center;justify-content:space-between;}
+.panel h3 .sub{font-size:10.5px;color:#8a9a82;font-weight:500;font-family:'Inter',sans-serif;}
+canvas{max-width:100%;}
+
+.icon-slot{border:1.5px dashed #c7d8c2;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#9ab293;font-size:10.5px;text-align:center;background:var(--sage-paler);}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{text-align:left;color:#5c6c55;font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;padding:6px 6px;border-bottom:1.5px solid var(--line);}
+td{padding:6px 6px;border-bottom:1px solid #EEF2EA;vertical-align:middle;}
+tr.total-row td{font-weight:800;color:var(--forest);border-top:2px solid var(--sage);border-bottom:none;}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;}
+.badge.High{background:var(--danger-pale);color:var(--danger);}
+.badge.Medium{background:var(--amber-pale);color:#a97c1e;}
+.badge.Optional{background:var(--sage-pale);color:var(--forest);}
+.badge.Utama{background:var(--sage-pale);color:var(--forest);}
+.badge.Sampingan{background:var(--amber-pale);color:#a97c1e;}
+.badge.Lainnya{background:#e9e9e9;color:#666;}
+.over{color:var(--danger)!important;font-weight:800;}
+.under-target{color:var(--danger)!important;}
+.ok{color:var(--sage);}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+
+/* buttons/inputs */
+.btn{border:none;border-radius:9px;padding:8px 14px;font-weight:700;font-size:12.5px;cursor:pointer;transition:.15s;}
+.btn-primary{background:var(--forest);color:#fff;}
+.btn-primary:hover{background:#173a21;}
+.btn-ghost{background:var(--sage-paler);color:var(--forest);}
+.btn-ghost:hover{background:var(--sage-pale);}
+.btn-danger{background:var(--danger-pale);color:var(--danger);}
+.btn-sm{padding:5px 9px;font-size:11px;border-radius:7px;}
+input[type=text],input[type=number],input[type=date],select{
+  border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12.5px;font-family:'Inter',sans-serif;background:#fff;color:var(--ink);width:100%;
+}
+input:focus,select:focus{outline:2px solid var(--sage-pale);border-color:var(--sage);}
+label{font-size:11px;font-weight:700;color:#5c6c55;display:block;margin-bottom:3px;}
+
+/* ledger view */
+.section-title{font-family:'Fraunces',serif;font-size:19px;color:var(--forest);font-weight:700;margin:4px 0 14px;}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end;}
+.filters .fld{min-width:130px;}
+.acct-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+.acct-card{background:linear-gradient(135deg,var(--forest),#2c5c39);color:#fff;border-radius:14px;padding:16px;box-shadow:var(--shadow);}
+.acct-card.cash{background:linear-gradient(135deg,#a97c1e,#c99a3c);}
+.acct-card.total{background:linear-gradient(135deg,var(--sage),#5a8656);}
+.acct-card .lbl{font-size:11px;opacity:.85;font-weight:600;text-transform:uppercase;}
+.acct-card .val{font-family:'Fraunces',serif;font-size:22px;font-weight:700;margin-top:4px;}
+@media(max-width:800px){.acct-row{grid-template-columns:1fr;}}
+
+.ledger-form{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;align-items:end;background:var(--sage-paler);border-radius:14px;padding:14px;margin-bottom:16px;}
+.ledger-form .full{grid-column:span 7;}
+@media(max-width:1100px){.ledger-form{grid-template-columns:repeat(2,1fr);}.ledger-form .full{grid-column:span 2;}}
+
+/* AI scanner */
+.scan-panel{background:linear-gradient(135deg,#fff,var(--sage-paler));border:1.5px dashed var(--sage);border-radius:14px;padding:16px;margin-bottom:16px;}
+.scan-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.scan-head h3{margin:0;font-size:15px;color:var(--forest);}
+.apikey-row{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:12px;}
+.scan-drop{border:1.5px dashed #c7d8c2;border-radius:12px;padding:22px;text-align:center;color:#6b7a63;font-size:12.5px;margin-top:12px;cursor:pointer;background:#fff;transition:.15s;}
+.scan-drop:hover{border-color:var(--sage);background:var(--sage-paler);}
+.scan-drop.dragover{border-color:var(--forest);background:var(--sage-pale);}
+.scan-preview{max-height:130px;border-radius:10px;margin-top:10px;display:block;}
+.scan-loading{display:flex;align-items:center;gap:8px;color:var(--forest);font-weight:700;font-size:13px;margin-top:12px;}
+.spinner{width:16px;height:16px;border:2.5px solid var(--sage-pale);border-top-color:var(--forest);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.scan-error{background:var(--danger-pale);color:var(--danger);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:12.5px;font-weight:600;}
+.scan-result{margin-top:14px;background:#fff;border-radius:12px;padding:14px;border:1px solid var(--line);}
+.scan-meta-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;}
+@media(max-width:900px){.scan-meta-row{grid-template-columns:repeat(2,1fr);}}
+.scan-items-table th,.scan-items-table td{padding:5px 6px;}
+.scan-items-table input[type=text]{min-width:110px;}
+.scan-items-table input[type=number]{width:80px;}
+.scan-add-item{margin-top:8px;}
+.scan-actions{display:flex;gap:10px;margin-top:14px;justify-content:flex-end;}
+.scan-total-line{display:flex;justify-content:flex-end;gap:16px;margin-top:8px;font-weight:800;color:var(--forest);font-family:'Fraunces',serif;font-size:15px;}
+
+.ledger-table-wrap{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--shadow);overflow-x:auto;}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:700;}
+.tag.income{background:var(--sage-pale);color:var(--forest);}
+.tag.saving{background:var(--amber-pale);color:#a97c1e;}
+.tag.fixed{background:#DDEAF5;color:#2A5D8C;}
+.tag.variable{background:#F2DDEA;color:#8C2A5D;}
+.tag.subscription{background:#E7DDF5;color:#5D2A8C;}
+.tag.mutasi{background:#eee;color:#555;}
+.iconbtn{background:none;border:none;cursor:pointer;color:#8a9a82;font-size:13px;padding:2px 5px;}
+.iconbtn:hover{color:var(--danger);}
+
+/* savings goals */
+.goal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+@media(max-width:1000px){.goal-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:650px){.goal-grid{grid-template-columns:1fr;}}
+.goal-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);}
+.goal-card h4{margin:0 0 2px;font-family:'Fraunces',serif;font-size:16px;color:var(--forest);}
+.progress-track{background:var(--sage-paler);border-radius:999px;height:10px;overflow:hidden;margin:10px 0 6px;}
+.progress-fill{background:linear-gradient(90deg,var(--sage),var(--forest));height:100%;border-radius:999px;}
+.goal-stats{display:flex;justify-content:space-between;font-size:11.5px;color:#5c6c55;}
+
+/* budgeting */
+.budget-group{margin-bottom:20px;}
+.budget-group-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.copy-btn-row{display:flex;gap:8px;margin-bottom:16px;}
+.add-cat-row{display:flex;gap:8px;margin-top:8px;}
+.add-cat-row input,.add-cat-row select{width:auto;flex:1;}
+.empty-note{color:#8a9a82;font-size:12px;text-align:center;padding:20px;}
+footer.credit{text-align:center;color:#9ab293;font-size:11px;margin-top:30px;}
+
+/* ===================== LOADING SCREEN ===================== */
+#globalLoading {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: var(--bg);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s ease;
+}
+#globalLoading .leaf-loader {
+  width: 60px; height: 60px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--sage), var(--forest));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 30px;
+  animation: pulse 1.5s infinite alternate;
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+#globalLoading .loading-text {
+  color: var(--forest);
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+}
+/* Animasi titik-titik (typing effect) */
+.dots::after {
+  content: '';
+  animation: dots 1.5s steps(4, end) infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  100% { transform: scale(1.05); opacity: 1; }
+}
+@keyframes dots {
+  0%, 20% { content: ''; }
+  40% { content: '.'; }
+  60% { content: '..'; }
+  80%, 100% { content: '...'; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOADING SCREEN ===================== -->
+<div id="globalLoading">
+  <div class="leaf-loader">🌿</div>
+  <div class="loading-text">Memuat Kebun Rezeki<span class="dots"></span></div>
+</div>
+
+<!-- ===================== AUTH SCREEN ===================== -->
+<div id="authScreen" class="auth-wrap" style="display:none;">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="leaf">🌿</div>
+      <div>
+        <h1>Kebun Rezeki</h1>
+        <span>Arus kas &amp; anggaran keluarga</span>
+      </div>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab-btn active" data-authtab="login">Masuk</button>
+      <!-- Perubahan: Teks Tab menjadi Buat Akun -->
+      <button class="auth-tab-btn" data-authtab="setup">Buat Akun</button>
+    </div>
+
+    <div class="auth-form" id="auth-setup">
+      <div class="auth-note" style="margin-top:0;margin-bottom:14px;" id="setup-intro">Buat ID dan kata sandi untuk aplikasi ini. Semua anggota keluarga memakai ID &amp; kata sandi yang sama — ini untuk mencegah orang lain di luar keluarga membuka data keuangan kalian.</div>
+      <div id="setup-fields">
+        <label>ID Keluarga</label>
+        <input type="text" id="setup-familyid" placeholder="mis. Keluarga Fikri" autocomplete="off">
+        <label style="margin-top:10px;">Buat Kata Sandi</label>
+        <input type="password" id="setup-password" autocomplete="new-password">
+        <label style="margin-top:10px;">Ulangi Kata Sandi</label>
+        <input type="password" id="setup-password2" autocomplete="new-password">
+        <button class="btn btn-primary" id="setup-submit" style="width:100%;margin-top:16px;">Buat &amp; Masuk</button>
+        <div class="auth-error" id="setup-error" style="display:none;"></div>
+      </div>
+      <div id="setup-already-exists" style="display:none;">
+        <div class="auth-error" style="display:block;">ID &amp; kata sandi keluarga sudah pernah dibuat. Gunakan tab <b>Masuk</b>, atau reset lewat "Lupa kata sandi?" di tab Masuk kalau lupa.</div>
+      </div>
+    </div>
+
+    <div class="auth-form active" id="auth-login">
+      <label>ID Keluarga</label>
+      <input type="text" id="login-familyid" placeholder="mis. Keluarga Fikri" autocomplete="off">
+      <label style="margin-top:10px;">Kata Sandi</label>
+      <input type="password" id="login-password" autocomplete="current-password" placeholder="Masukkan kata sandi">
+      <button class="btn btn-primary" id="login-submit" style="width:100%;margin-top:16px;">Masuk</button>
+      <div class="auth-error" id="login-error" style="display:none;"></div>
+      <div class="auth-note">
+        <button id="forgotLink" style="border:none;background:none;color:var(--forest);font-weight:700;text-decoration:underline;cursor:pointer;padding:0;font-size:11px;">Lupa kata sandi?</button>
+      </div>
+      <div id="forgotBox" style="display:none;margin-top:10px;padding:10px;background:var(--danger-pale);border-radius:9px;">
+        <div style="font-size:11.5px;color:var(--danger);font-weight:600;margin-bottom:8px;">Mengatur ulang kata sandi TIDAK menghapus data keuanganmu. Ketik <b>RESET</b> untuk lanjut.</div>
+        <input type="text" id="forgot-confirm" placeholder="Ketik RESET">
+        <button class="btn btn-danger btn-sm" id="forgot-submit" style="width:100%;margin-top:8px;">Atur Ulang ID &amp; Kata Sandi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="appShell" style="display:none;">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="leaf">🌿</div>
+      <div>
+        <h1>Kebun Rezeki</h1>
+        <span>Arus kas &amp; anggaran keluarga</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="whoami"><span id="familyIdLabel">👪</span> <button id="lockBtn">🔒 Kunci Aplikasi</button></div>
+      <div class="period-picker">
+        <select id="monthSelect"></select>
+        <select id="yearSelect"></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+    <button class="tab-btn" data-tab="ledger">💸 Arus Kas</button>
+    <button class="tab-btn" data-tab="savings">🌱 Tabungan Keluarga</button>
+    <button class="tab-btn" data-tab="budgeting">🗂️ Budgeting Bulanan</button>
+  </div>
+
+  <!-- ===================== DASHBOARD ===================== -->
+  <div class="view active" id="view-dashboard">
+    <div class="dash-toggle">
+      <button class="toggle-btn active" data-dashview="monthly">🗓️ Bulanan</button>
+      <button class="toggle-btn" data-dashview="yearly">📅 Tahunan</button>
+    </div>
+
+    <div class="dash-sub active" id="dash-monthly">
+    <div class="kpi-row">
+      <div class="kpi income"><div class="lbl">Pendapatan Bulanan</div><div class="val" id="kpi-income">Rp0</div></div>
+      <div class="kpi"><div class="lbl">Sisa Uang Bulan Ini</div><div class="val" id="kpi-remaining">Rp0</div></div>
+      <div class="kpi save"><div class="lbl">Uang Ditabung Bulan Ini</div><div class="val" id="kpi-saved">Rp0</div></div>
+      <div class="kpi expense"><div class="lbl">Total Pengeluaran Bulan Ini</div><div class="val" id="kpi-expense">Rp0</div></div>
+      <div class="kpi expense"><div class="lbl">Pengeluaran Sehari-hari</div><div class="val" id="kpi-daily">Rp0</div></div>
+    </div>
+
+    <div class="grid4">
+      <div class="panel" style="grid-column:span 2;">
+        <h3>Pendapatan vs Pengeluaran</h3>
+        <canvas id="chartIncomeExpense" height="150"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Rencana vs Aktual</h3>
+        <canvas id="chartPlanActual" height="150"></canvas>
+      </div>
+      <div class="icon-slot" style="min-height:180px;">Ruang untuk gambar / ikon<br>(upload gambarmu sendiri di sini)</div>
+    </div>
+
+    <div class="grid4">
+      <div class="panel">
+        <h3>Ringkasan Pendapatan</h3>
+        <canvas id="chartIncomeDonut" height="180"></canvas>
+      </div>
+      <div class="panel">
+        <h3>Ringkasan Tabungan</h3>
+        <canvas id="chartSavingDonut" height="180"></canvas>
+      </div>
+      <div class="panel" style="grid-column:span 2;">
+        <h3>Diagram Pengeluaran Bulanan <span class="sub">Fixed · Variable · Subscription&amp;Debt</span></h3>
+        <canvas id="chartExpenseGroups" height="130"></canvas>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:14px;">
+      <h3>Grafik Perbandingan Budgeting vs Realisasi <span class="sub">Rencana vs Aktual per kategori — merah = melebihi/tidak tercapai target</span></h3>
+      <canvas id="chartVariance" height="90"></canvas>
+    </div>
+
+    <h2 class="section-title">Tabel Detail Rencana &amp; Realisasi</h2>
+    <div class="grid4">
+      <div class="panel">
+        <h3>Pendapatan / Income</h3>
+        <table><thead><tr><th>Sumber</th><th>Tipe</th><th class="num">Jumlah</th></tr></thead><tbody id="tbl-income"></tbody></table>
+      </div>
+      <div class="panel">
+        <h3>Nabung / Saving</h3>
+        <table><thead><tr><th>Keterangan</th><th>Prioritas</th><th class="num">Rencana</th><th class="num">Aktual</th></tr></thead><tbody id="tbl-saving"></tbody></table>
+      </div>
+      <div class="panel">
+        <h3>Pengeluaran Tetap / Fixed Cost</h3>
+        <table><thead><tr><th>Keterangan</th><th>Prioritas</th><th class="num">Rencana</th><th class="num">Aktual</th></tr></thead><tbody id="tbl-fixed"></tbody></table>
+      </div>
+      <div class="panel">
+        <h3>Pengeluaran Tidak Tetap / Variable</h3>
+        <table><thead><tr><th>Keterangan</th><th>Prioritas</th><th class="num">Rencana</th><th class="num">Aktual</th></tr></thead><tbody id="tbl-variable"></tbody></table>
+      </div>
+    </div>
+    <div class="panel" style="max-width:calc(25% - 11px);min-width:280px;">
+      <h3>Langganan &amp; Hutang</h3>
+      <table><thead><tr><th>Keterangan</th><th>Prioritas</th><th class="num">Rencana</th><th class="num">Aktual</th></tr></thead><tbody id="tbl-subscription"></tbody></table>
+    </div>
+    </div>
+
+    <div class="dash-sub" id="dash-yearly">
+      <div class="kpi-row">
+        <div class="kpi income"><div class="lbl">Total Pendapatan Setahun</div><div class="val" id="ykpi-income">Rp0</div></div>
+        <div class="kpi"><div class="lbl">Sisa Uang Setahun</div><div class="val" id="ykpi-remaining">Rp0</div></div>
+        <div class="kpi save"><div class="lbl">Total Ditabung Setahun</div><div class="val" id="ykpi-saved">Rp0</div></div>
+        <div class="kpi expense"><div class="lbl">Total Pengeluaran Setahun</div><div class="val" id="ykpi-expense">Rp0</div></div>
+        <div class="kpi expense"><div class="lbl">Rata-rata Pengeluaran/Bulan</div><div class="val" id="ykpi-avg">Rp0</div></div>
+      </div>
+
+      <div class="panel" style="margin-bottom:14px;">
+        <h3>Tren Bulanan Sepanjang Tahun <span class="sub">Pendapatan · Pengeluaran · Ditabung</span></h3>
+        <canvas id="chartYearlyTrend" height="90"></canvas>
+      </div>
+
+      <div class="grid4">
+        <div class="panel">
+          <h3>Ringkasan Pendapatan Setahun</h3>
+          <canvas id="chartIncomeDonutYear" height="180"></canvas>
+        </div>
+        <div class="panel">
+          <h3>Ringkasan Tabungan Setahun</h3>
+          <canvas id="chartSavingDonutYear" height="180"></canvas>
+        </div>
+        <div class="panel" style="grid-column:span 2;">
+          <h3>Diagram Pengeluaran Setahun <span class="sub">Fixed · Variable · Subscription&amp;Debt</span></h3>
+          <canvas id="chartExpenseGroupsYear" height="130"></canvas>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom:14px;">
+        <h3>Budgeting vs Realisasi Setahun <span class="sub">Total Rencana vs Aktual per kategori, akumulasi 12 bulan</span></h3>
+        <canvas id="chartVarianceYear" height="90"></canvas>
+      </div>
+
+      <div class="panel">
+        <h3>Rincian per Bulan</h3>
+        <table>
+          <thead><tr><th>Bulan</th><th class="num">Pendapatan</th><th class="num">Pengeluaran</th><th class="num">Ditabung</th><th class="num">Sisa</th></tr></thead>
+          <tbody id="tbl-yearly-months"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== LEDGER / ARUS KAS ===================== -->
+  <div class="view" id="view-ledger">
+    <h2 class="section-title">Arus Kas Keluarga</h2>
+
+    <div class="acct-row">
+      <div class="acct-card"><div class="lbl">Saldo Rekening / Bank</div><div class="val" id="acct-bank">Rp0</div></div>
+      <div class="acct-card cash"><div class="lbl">Saldo Cash / Tunai</div><div class="val" id="acct-cash">Rp0</div></div>
+      <div class="acct-card total"><div class="lbl">Total Saldo Keluarga</div><div class="val" id="acct-total">Rp0</div></div>
+    </div>
+
+    <!-- AI RECEIPT SCANNER (GROQ VISION AI) -->
+    <div class="scan-panel">
+      <div class="scan-head">
+        <h3>📷 Scan Struk dengan AI (Groq Vision)</h3>
+        <span class="sub" style="color:#6b7a63;font-size:11px;">Upload foto struk / bukti transfer bank, AI Vision akan mengekstrak detailnya secara cerdas</span>
+      </div>
+
+      <div class="apikey-row" id="apikeyRow">
+        <label style="margin-bottom:0;">🔑 Groq API Key <span style="font-weight:500;color:#8a9a82;">(Gratis 100%, tersimpan lokal di perangkatmu)</span></label>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <input type="password" id="apikey-input" placeholder="gsk_...">
+          <button class="btn btn-primary btn-sm" id="apikey-save" style="white-space:nowrap;">Simpan Key</button>
+        </div>
+        <div style="font-size:11px;color:#8a9a82;margin-top:6px;">
+          Belum punya? Dapatkan API key gratis dalam 1 menit di <a href="https://console.groq.com/keys" target="_blank" style="color:var(--forest);">console.groq.com/keys</a>.
+          Key hanya digunakan langsung dari browsermu saat panggil Groq AI, tidak dikirim ke server lain.
+        </div>
+      </div>
+      <div id="apikeySavedNote" style="display:none;font-size:11.5px;color:var(--forest);font-weight:600;margin-bottom:8px;">
+        🔑 Groq API key tersimpan. <button class="iconbtn" id="apikey-change" style="text-decoration:underline;color:var(--forest);font-size:11.5px;">Ganti key</button>
+      </div>
+
+      <div class="scan-drop" id="scanDrop">
+        Klik atau tarik foto struk / bukti transfer ke sini (JPG/PNG)<br>
+        <input type="file" id="scanFileInput" accept="image/*" style="display:none;">
+      </div>
+      <img id="scanPreviewImg" class="scan-preview" style="display:none;">
+      <div class="scan-loading" id="scanLoading" style="display:none;"><div class="spinner"></div> Membaca struk dengan AI Groq...</div>
+      <div class="scan-error" id="scanError" style="display:none;"></div>
+
+      <div class="scan-result" id="scanResult" style="display:none;">
+        <div class="scan-meta-row">
+          <div class="fld"><label>Toko / Merchant</label><input type="text" id="scan-merchant"></div>
+          <div class="fld"><label>Tanggal</label><input type="date" id="scan-date"></div>
+          <div class="fld"><label>Jenis Transaksi</label>
+            <select id="scan-group">
+              <option value="variable">Pengeluaran Tidak Tetap</option>
+              <option value="fixed">Pengeluaran Tetap</option>
+              <option value="subscription">Langganan &amp; Hutang</option>
+              <option value="saving">Tabungan</option>
+              <option value="income">Pemasukan</option>
+            </select>
+          </div>
+          <div class="fld"><label>Akun</label>
+            <select id="scan-akun"><option value="cash">Cash / Tunai</option><option value="bank">Rekening / Bank</option></select>
+          </div>
+        </div>
+        <table class="scan-items-table">
+          <thead><tr><th></th><th>Nama Barang</th><th>Kategori</th><th class="num">Qty</th><th class="num">Harga Satuan</th><th class="num">Subtotal</th><th></th></tr></thead>
+          <tbody id="scan-items-body"></tbody>
+        </table>
+        <button class="btn btn-ghost btn-sm scan-add-item" id="scan-add-item">+ Tambah Baris</button>
+        <div class="scan-total-line">Total: <span id="scan-total-display">Rp0</span></div>
+        <div class="scan-actions">
+          <button class="btn btn-ghost" id="scan-cancel">Batalkan</button>
+          <button class="btn btn-primary" id="scan-save">✓ Simpan ke Arus Kas</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ledger-form" id="ledgerForm">
+      <div class="fld"><label>Tanggal</label><input type="date" id="lf-date"></div>
+      <div class="fld"><label>Jenis</label>
+        <select id="lf-group">
+          <option value="income">Pemasukan</option>
+          <option value="saving">Tabungan</option>
+          <option value="fixed">Pengeluaran Tetap</option>
+          <option value="variable">Pengeluaran Tidak Tetap</option>
+          <option value="subscription">Langganan &amp; Hutang</option>
+          <option value="mutasi">Mutasi Rekening ↔ Cash</option>
+        </select>
+      </div>
+      <div class="fld" id="lf-cat-wrap"><label>Kategori</label><select id="lf-category"></select></div>
+      <div class="fld" id="lf-akun-wrap"><label>Akun</label>
+        <select id="lf-akun"><option value="bank">Rekening / Bank</option><option value="cash">Cash / Tunai</option></select>
+      </div>
+      <div class="fld" id="lf-arah-wrap" style="display:none;"><label>Arah Mutasi</label>
+        <select id="lf-arah"><option value="bank-cash">Rekening → Cash</option><option value="cash-bank">Cash → Rekening</option></select>
+      </div>
+      <div class="fld"><label>Jumlah (Rp)</label><input type="number" id="lf-amount" placeholder="0"></div>
+      <div class="fld"><button class="btn btn-primary" style="width:100%;" id="lf-submit">+ Tambah</button></div>
+      <div class="fld full"><label>Keterangan</label><input type="text" id="lf-note" placeholder="mis. Belanja mingguan, Gaji suami, dsb."></div>
+    </div>
+
+    <div class="filters">
+      <div class="fld"><label>Bulan</label><select id="filt-month"></select></div>
+      <div class="fld"><label>Tahun</label><select id="filt-year"></select></div>
+      <div class="fld"><label>Jenis</label><select id="filt-group">
+        <option value="all">Semua</option><option value="income">Pemasukan</option><option value="saving">Tabungan</option>
+        <option value="fixed">Fixed Cost</option><option value="variable">Variable Cost</option>
+        <option value="subscription">Langganan &amp; Hutang</option><option value="mutasi">Mutasi</option></select></div>
+      <div class="fld"><label>Akun</label><select id="filt-akun"><option value="all">Semua</option><option value="bank">Rekening/Bank</option><option value="cash">Cash</option></select></div>
+    </div>
+
+    <div class="ledger-table-wrap">
+      <table>
+        <thead><tr><th>Tanggal</th><th>Jenis</th><th>Kategori</th><th>Keterangan</th><th>Akun</th><th class="num">Jumlah</th><th></th></tr></thead>
+        <tbody id="tbl-ledger"></tbody>
+      </table>
+      <div class="empty-note" id="ledger-empty" style="display:none;">Belum ada transaksi pada filter ini. Tambahkan transaksi pertamamu di atas 🌱</div>
+    </div>
+  </div>
+
+  <!-- ===================== SAVINGS ===================== -->
+  <div class="view" id="view-savings">
+    <h2 class="section-title">Tabungan Keluarga</h2>
+    <p style="color:#5c6c55;margin-top:-8px;">Progres tabungan dihitung dari seluruh transaksi tabungan sepanjang waktu (all-time), dibandingkan dengan target yang kamu tetapkan.</p>
+    <div class="goal-grid" id="goal-grid"></div>
+  </div>
+
+  <!-- ===================== BUDGETING ===================== -->
+  <div class="view" id="view-budgeting">
+    <h2 class="section-title">Budgeting Bulanan</h2>
+    <div class="copy-btn-row">
+      <button class="btn btn-ghost" id="btn-copy-prev">↩️ Salin Rencana dari Bulan Sebelumnya</button>
+    </div>
+    <div id="budget-groups"></div>
+    <div class="panel" style="margin-top:8px;">
+      <h3>Sumber Pendapatan (kelola kategori)</h3>
+      <table><thead><tr><th>Sumber</th><th>Tipe</th><th></th></tr></thead><tbody id="budget-income-cats"></tbody></table>
+      <div class="add-cat-row">
+        <input type="text" id="new-income-name" placeholder="Nama sumber baru, mis. Bonus">
+        <select id="new-income-tipe"><option>Utama</option><option>Sampingan</option><option>Lainnya</option></select>
+        <button class="btn btn-primary btn-sm" id="add-income-cat">+ Tambah</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="credit">Dibuat untuk pencatatan keuangan keluarga · data tersimpan otomatis di perangkat ini</footer>
+</div>
+
+<!-- ===================== SCRIPTS ===================== -->
+<!-- Panggil file JavaScript Eksternal -->
+<script src="script.js"></script>
+
+</body>
+</html>
