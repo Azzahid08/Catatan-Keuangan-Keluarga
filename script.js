@@ -12,20 +12,23 @@ let state = null;
 let saveTimer = null;
 let editingLedgerId = null;
 
+// FUNGSI BARU: Memaksa simpan seketika (tanpa jeda)
+async function forceSave() {
+  try {
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "syncState", stateData: JSON.stringify(state) })
+    });
+    console.log("Data berhasil disinkronkan ke Google Sheets");
+  } catch(e) {
+    console.error("Gagal menyimpan ke Google Sheets", e);
+  }
+}
+
 function queueSave(){
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(async ()=>{
-    try {
-      await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "syncState", stateData: JSON.stringify(state) })
-      });
-      console.log("Data berhasil disinkronkan ke Google Sheets");
-    } catch(e) {
-      console.error("Gagal menyimpan ke Google Sheets", e);
-    }
-  }, 500);
+  saveTimer = setTimeout(forceSave, 800); // Menggunakan jeda untuk ketik cepat
 }
 
 function defaultState(){
@@ -87,7 +90,7 @@ function randomSalt(){
   return [...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
-// Auth sekarang membaca akun langsung dari Google Sheets, bukan dari Local Storage HP
+// Auth membaca akun langsung dari Google Sheets
 async function loadFamilyAuth(){
   try{
     const res = await fetch(API_URL + "?action=getState");
@@ -103,13 +106,6 @@ async function loadFamilyAuth(){
     console.error("Gagal load auth dari Sheets", e); 
     return null; 
   }
-}
-
-// Menyimpan pembuatan akun baru langsung ke server Google Sheets
-async function saveFamilyAuth(obj){
-  if(!state) state = defaultState();
-  state.authObj = obj;
-  queueSave(); 
 }
 
 function showAuthForm(which){
@@ -129,38 +125,81 @@ async function refreshSetupTab(){
   document.getElementById('setup-already-exists').style.display = auth ? 'block' : 'none';
 }
 
+// PERBAIKAN LOGIKA BUAT AKUN (Fix Race Condition)
 document.getElementById('setup-submit').onclick = async ()=>{
   const familyId = document.getElementById('setup-familyid').value.trim();
   const pw = document.getElementById('setup-password').value;
   const pw2 = document.getElementById('setup-password2').value;
   const errEl = document.getElementById('setup-error');
   errEl.style.display='none';
-  if(!familyId){ errEl.textContent='ID Keluarga wajib diisi.'; errEl.style.display='block'; return; }
-  if(!pw){ errEl.textContent='Kata sandi wajib diisi.'; errEl.style.display='block'; return; }
+  
+  if(!familyId || !pw){ errEl.textContent='ID Keluarga dan kata sandi wajib diisi.'; errEl.style.display='block'; return; }
   if(pw.length < 4){ errEl.textContent='Kata sandi minimal 4 karakter.'; errEl.style.display='block'; return; }
   if(pw !== pw2){ errEl.textContent='Kata sandi dan pengulangannya tidak sama.'; errEl.style.display='block'; return; }
-  const salt = randomSalt();
-  const hash = await sha256Hex(salt+pw);
-  await saveFamilyAuth({familyId, salt, hash});
-  await enterApp(familyId);
+  
+  const btn = document.getElementById('setup-submit');
+  btn.innerText = "Mendaftarkan ke Server...";
+  btn.disabled = true;
+
+  try {
+    const salt = randomSalt();
+    const hash = await sha256Hex(salt+pw);
+    
+    await loadState(); // Ambil state bersih dari server
+    if(!state) state = defaultState();
+    
+    state.authObj = {familyId, salt, hash};
+    
+    // WAJIB: Simpan paksa dan tunggu sampai selesai sebelum lanjut
+    await forceSave();
+    
+    // Simpan di perangkat ini agar tidak perlu login setiap di-refresh
+    localStorage.setItem('kr_session', familyId);
+    
+    await enterApp(familyId, true); // Masuk aplikasi tanpa me-load data lagi
+  } catch (err) {
+    errEl.textContent='Gagal menyambung ke server.'; errEl.style.display='block';
+  } finally {
+    btn.innerText = "Buat & Masuk";
+    btn.disabled = false;
+  }
 };
 
+// PERBAIKAN LOGIKA MASUK
 document.getElementById('login-submit').onclick = async ()=>{
   const familyId = document.getElementById('login-familyid').value.trim();
   const pw = document.getElementById('login-password').value;
   const errEl = document.getElementById('login-error');
   errEl.style.display='none';
   if(!familyId || !pw){ errEl.textContent='Isi ID Keluarga dan kata sandi.'; errEl.style.display='block'; return; }
-  const auth = await loadFamilyAuth();
-  if(!auth){
-    errEl.textContent='Belum ada akun keluarga. Silakan buat dulu lewat tab "Buat Akun".';
-    errEl.style.display='block';
-    return;
+  
+  const btn = document.getElementById('login-submit');
+  btn.innerText = "Mengecek ke Server...";
+  btn.disabled = true;
+
+  try {
+    const auth = await loadFamilyAuth();
+    if(!auth){
+      errEl.textContent='Belum ada akun keluarga di Database. Buat dulu di tab "Buat Akun".';
+      errEl.style.display='block';
+    } else if(familyId.toLowerCase() !== auth.familyId.toLowerCase()){ 
+      errEl.textContent='ID Keluarga salah/tidak ditemukan.'; errEl.style.display='block'; 
+    } else {
+      const hash = await sha256Hex(auth.salt+pw);
+      if(hash !== auth.hash){ 
+        errEl.textContent='Kata sandi salah. Coba lagi.'; errEl.style.display='block'; 
+      } else {
+        // BERHASIL: Simpan di perangkat ini agar tidak perlu login setiap di-refresh
+        localStorage.setItem('kr_session', familyId);
+        await enterApp(familyId, false);
+      }
+    }
+  } catch (err) {
+    errEl.textContent='Gagal menyambung ke server.'; errEl.style.display='block';
+  } finally {
+    btn.innerText = "Masuk";
+    btn.disabled = false;
   }
-  if(familyId.toLowerCase() !== auth.familyId.toLowerCase()){ errEl.textContent='ID Keluarga tidak ditemukan.'; errEl.style.display='block'; return; }
-  const hash = await sha256Hex(auth.salt+pw);
-  if(hash !== auth.hash){ errEl.textContent='Kata sandi salah. Coba lagi.'; errEl.style.display='block'; return; }
-  await enterApp(auth.familyId);
 };
 
 document.getElementById('forgotLink').onclick = ()=>{
@@ -171,9 +210,10 @@ document.getElementById('forgot-submit').onclick = async ()=>{
   
   if(state) {
     state.authObj = null;
-    queueSave();
+    await forceSave();
   }
   
+  localStorage.removeItem('kr_session');
   document.getElementById('forgotBox').style.display='none';
   document.getElementById('login-password').value='';
   document.getElementById('login-familyid').value='';
@@ -184,8 +224,8 @@ document.getElementById('forgot-submit').onclick = async ()=>{
 ['login-familyid','login-password'].forEach(id=>document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('login-submit').click(); }));
 ['setup-familyid','setup-password','setup-password2'].forEach(id=>document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('setup-submit').click(); }));
 
-// FUNGSI INI DIPERBARUI AGAR MENAMPILKAN LOADING SAAT LOGIN
-async function enterApp(familyId){
+// PERBAIKAN FUNGSI MASUK APLIKASI
+async function enterApp(familyId, skipLoad = false){
   const loader = document.getElementById('globalLoading');
   loader.style.display = 'flex';
   
@@ -193,7 +233,10 @@ async function enterApp(familyId){
     loader.style.opacity = '1';
     document.getElementById('authScreen').style.display='none';
     
-    await loadState();
+    // Jika skipLoad = true (baru buat akun), tidak perlu load data lagi karena sudah fresh
+    if (!skipLoad) {
+      await loadState();
+    }
     
     document.getElementById('familyIdLabel').textContent = '👪 ' + (familyId || '');
     document.getElementById('lockBtn').onclick = lockApp;
@@ -213,12 +256,11 @@ async function enterApp(familyId){
   }, 10);
 }
 
+// PERBAIKAN FUNGSI LOGOUT KUNCI APLIKASI
 function lockApp(){
   state = null;
-  document.getElementById('appShell').style.display='none';
-  document.getElementById('authScreen').style.display='flex';
-  document.getElementById('login-password').value='';
-  showAuthForm('auth-login');
+  localStorage.removeItem('kr_session'); // Hapus ingatan perangkat ini
+  window.location.reload(); // Muat ulang layar
 }
 
 /* ============================= HELPERS ============================= */
@@ -737,7 +779,7 @@ function renderLedger(){
   }).join('');
 }
 
-/* ============================= AI RECEIPT SCANNER (GROQ VISION AI API) ============================= */
+/* ============================= AI RECEIPT SCANNER ============================= */
 let scanItems = [];
 
 function initScanPanel(){
@@ -998,7 +1040,6 @@ function renderSavings(){
   }).join('');
 }
 
-// FUNGSI NABUNG CEPAT DARI TAB TABUNGAN
 function quickAddSaving(catId) {
   const amtInput = document.getElementById(`qs-amt-${catId}`);
   const akunInput = document.getElementById(`qs-akun-${catId}`);
@@ -1150,22 +1191,31 @@ function renderAll(){
   if(active==='budgeting') renderBudgeting();
 }
 
-/* ============================= INIT ============================= */
+/* ============================= INIT & PINTU GERBANG (LOGIN OTOMATIS) ============================= */
 (async function initAuthGate(){
-  const auth = await loadFamilyAuth();
-  showAuthForm(auth ? 'auth-login' : 'auth-setup');
-  await refreshSetupTab();
+  // 1. Cek apakah perangkat ini masih menyimpan sesi/ingatan
+  const session = localStorage.getItem('kr_session');
   
-  setTimeout(() => {
-    const loader = document.getElementById('globalLoading');
-    if(loader) {
-      loader.style.opacity = '0';
-      setTimeout(() => {
-        loader.style.display = 'none';
+  if (session) {
+    // Jika ingat, langsung tembak masuk tanpa load form login
+    await enterApp(session, false);
+  } else {
+    // Jika lupa (atau belum pernah login), baru tampilkan form
+    const auth = await loadFamilyAuth();
+    showAuthForm(auth ? 'auth-login' : 'auth-setup');
+    await refreshSetupTab();
+    
+    setTimeout(() => {
+      const loader = document.getElementById('globalLoading');
+      if(loader) {
+        loader.style.opacity = '0';
+        setTimeout(() => {
+          loader.style.display = 'none';
+          document.getElementById('authScreen').style.display = 'flex';
+        }, 400);
+      } else {
         document.getElementById('authScreen').style.display = 'flex';
-      }, 400);
-    } else {
-      document.getElementById('authScreen').style.display = 'flex';
-    }
-  }, 1200); 
+      }
+    }, 1200); 
+  }
 })();
