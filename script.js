@@ -1,6 +1,6 @@
 /* ============================= CONFIG & API ============================= */
-// GANTI URL INI DENGAN WEB APP URL DARI GOOGLE APPS SCRIPT KAMU
-const API_URL = "https://script.google.com/macros/s/AKfycbxtWBLRQALTuqgXhGxnAD2oM7Wu8aQiYzbkTLkY79-BjBhRziiS86ZNe0MSvieK9vD6/exec";
+// URL Web App dari Google Apps Script milikmu
+const API_URL = "https://script.google.com/macros/s/AKfycbyYOAK2ZtqLzv24bmtxRgQwHRNbhvQibIj6reXloHuSOs6IZrZEDBx8Bum5j9mPw9nB/exec";
 
 /* ============================= DATA & STORAGE ============================= */
 const MONTHS = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
@@ -18,9 +18,8 @@ function queueSave(){
     try {
       await fetch(API_URL, {
         method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(state)
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "syncState", stateData: JSON.stringify(state) })
       });
       console.log("Data berhasil disinkronkan ke Google Sheets");
     } catch(e) {
@@ -35,6 +34,7 @@ function defaultState(){
   return {
     period: ym,
     groqApiKey: '',
+    authObj: null, // Tempat menyimpan akun keluarga agar sinkron antar perangkat
     categories: [
       {id:uid(), group:'income', name:'Gaji Suami', tipe:'Utama'},
       {id:uid(), group:'income', name:'Gaji Istri', tipe:'Utama'},
@@ -57,11 +57,11 @@ function defaultState(){
 
 async function loadState(){
   try {
-    const res = await fetch(API_URL);
+    const res = await fetch(API_URL + "?action=getState");
     if(res.ok) {
-      const data = await res.json();
-      if(data && data.categories && data.categories.length > 0) {
-        state = data;
+      const result = await res.json();
+      if(result.status === 'success' && result.data) {
+        state = JSON.parse(result.data);
       } else {
         state = defaultState();
       }
@@ -87,16 +87,31 @@ function randomSalt(){
   return [...crypto.getRandomValues(new Uint8Array(16))].map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
+// Auth sekarang membaca akun langsung dari Google Sheets, bukan dari Local Storage HP
 async function loadFamilyAuth(){
   try{
-    const res = localStorage.getItem('family-auth');
-    return res ? JSON.parse(res) : null;
-  }catch(e){ return null; }
+    const res = await fetch(API_URL + "?action=getState");
+    if(res.ok) {
+      const result = await res.json();
+      if(result.status === 'success' && result.data){
+        const serverState = JSON.parse(result.data);
+        return serverState.authObj ? serverState.authObj : null;
+      }
+    }
+    return null;
+  }catch(e){ 
+    console.error("Gagal load auth dari Sheets", e); 
+    return null; 
+  }
 }
+
+// Menyimpan pembuatan akun baru langsung ke server Google Sheets
 async function saveFamilyAuth(obj){
-  try{ localStorage.setItem('family-auth', JSON.stringify(obj)); }
-  catch(e){ console.error('failed to save family auth', e); }
+  if(!state) state = defaultState();
+  state.authObj = obj;
+  queueSave(); 
 }
+
 function showAuthForm(which){
   document.querySelectorAll('.auth-form').forEach(f=>f.classList.remove('active'));
   document.querySelectorAll('.auth-tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.authtab===which.replace('auth-','')));
@@ -153,7 +168,12 @@ document.getElementById('forgotLink').onclick = ()=>{
 };
 document.getElementById('forgot-submit').onclick = async ()=>{
   if(document.getElementById('forgot-confirm').value.trim() !== 'RESET'){ alert('Ketik RESET (huruf kapital) untuk konfirmasi.'); return; }
-  try{ localStorage.removeItem('family-auth'); }catch(e){}
+  
+  if(state) {
+    state.authObj = null;
+    queueSave();
+  }
+  
   document.getElementById('forgotBox').style.display='none';
   document.getElementById('login-password').value='';
   document.getElementById('login-familyid').value='';
@@ -166,21 +186,15 @@ document.getElementById('forgot-submit').onclick = async ()=>{
 
 // FUNGSI INI DIPERBARUI AGAR MENAMPILKAN LOADING SAAT LOGIN
 async function enterApp(familyId){
-  // 1. Tampilkan Loading Screen
   const loader = document.getElementById('globalLoading');
   loader.style.display = 'flex';
   
-  // Berikan sedikit jeda sebelum memudarkan transparansi (efek transisi)
   setTimeout(async () => {
     loader.style.opacity = '1';
-    
-    // 2. Sembunyikan layar Autentikasi/Login
     document.getElementById('authScreen').style.display='none';
     
-    // 3. Tarik data dari Google Sheets (Proses di balik layar)
     await loadState();
     
-    // 4. Inisialisasi komponen UI Dashboard
     document.getElementById('familyIdLabel').textContent = '👪 ' + (familyId || '');
     document.getElementById('lockBtn').onclick = lockApp;
     initPeriodPickers();
@@ -188,15 +202,14 @@ async function enterApp(familyId){
     initLedgerFilters();
     initScanPanel();
     
-    // 5. Hilangkan Loading Screen dan tampilkan Dashboard utama
     setTimeout(() => {
-      loader.style.opacity = '0'; // Pudar perlahan
+      loader.style.opacity = '0';
       setTimeout(() => {
         loader.style.display = 'none';
         document.getElementById('appShell').style.display='block';
         renderAll();
-      }, 400); // Waktu pudarnya sesuai CSS (0.4 detik)
-    }, 800); // Durasi minimal loading terlihat di layar agar cantik
+      }, 400); 
+    }, 800); 
   }, 10);
 }
 
@@ -1143,7 +1156,6 @@ function renderAll(){
   showAuthForm(auth ? 'auth-login' : 'auth-setup');
   await refreshSetupTab();
   
-  // Tampilkan layar loading awal saat pertama kali dibuka
   setTimeout(() => {
     const loader = document.getElementById('globalLoading');
     if(loader) {
