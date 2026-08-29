@@ -12,7 +12,7 @@ let state = null;
 let saveTimer = null;
 let editingLedgerId = null;
 
-// FUNGSI BARU: Memaksa simpan seketika (tanpa jeda)
+// Memaksa simpan seketika (tanpa jeda) agar pendaftaran akun tidak tertimpa
 async function forceSave() {
   try {
     await fetch(API_URL, {
@@ -28,7 +28,7 @@ async function forceSave() {
 
 function queueSave(){
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(forceSave, 800); // Menggunakan jeda untuk ketik cepat
+  saveTimer = setTimeout(forceSave, 800);
 }
 
 function defaultState(){
@@ -125,7 +125,6 @@ async function refreshSetupTab(){
   document.getElementById('setup-already-exists').style.display = auth ? 'block' : 'none';
 }
 
-// PERBAIKAN LOGIKA BUAT AKUN (Fix Race Condition)
 document.getElementById('setup-submit').onclick = async ()=>{
   const familyId = document.getElementById('setup-familyid').value.trim();
   const pw = document.getElementById('setup-password').value;
@@ -150,13 +149,13 @@ document.getElementById('setup-submit').onclick = async ()=>{
     
     state.authObj = {familyId, salt, hash};
     
-    // WAJIB: Simpan paksa dan tunggu sampai selesai sebelum lanjut
+    // Simpan paksa dan tunggu sampai selesai
     await forceSave();
     
-    // Simpan di perangkat ini agar tidak perlu login setiap di-refresh
+    // Simpan sesi di browser agar tidak minta login terus
     localStorage.setItem('kr_session', familyId);
     
-    await enterApp(familyId, true); // Masuk aplikasi tanpa me-load data lagi
+    await enterApp(familyId, true); // Masuk aplikasi langsung
   } catch (err) {
     errEl.textContent='Gagal menyambung ke server.'; errEl.style.display='block';
   } finally {
@@ -165,7 +164,6 @@ document.getElementById('setup-submit').onclick = async ()=>{
   }
 };
 
-// PERBAIKAN LOGIKA MASUK
 document.getElementById('login-submit').onclick = async ()=>{
   const familyId = document.getElementById('login-familyid').value.trim();
   const pw = document.getElementById('login-password').value;
@@ -189,7 +187,6 @@ document.getElementById('login-submit').onclick = async ()=>{
       if(hash !== auth.hash){ 
         errEl.textContent='Kata sandi salah. Coba lagi.'; errEl.style.display='block'; 
       } else {
-        // BERHASIL: Simpan di perangkat ini agar tidak perlu login setiap di-refresh
         localStorage.setItem('kr_session', familyId);
         await enterApp(familyId, false);
       }
@@ -224,16 +221,14 @@ document.getElementById('forgot-submit').onclick = async ()=>{
 ['login-familyid','login-password'].forEach(id=>document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('login-submit').click(); }));
 ['setup-familyid','setup-password','setup-password2'].forEach(id=>document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('setup-submit').click(); }));
 
-// PERBAIKAN FUNGSI MASUK APLIKASI
 async function enterApp(familyId, skipLoad = false){
   const loader = document.getElementById('globalLoading');
-  loader.style.display = 'flex';
+  if(loader) loader.style.display = 'flex';
   
   setTimeout(async () => {
-    loader.style.opacity = '1';
+    if(loader) loader.style.opacity = '1';
     document.getElementById('authScreen').style.display='none';
     
-    // Jika skipLoad = true (baru buat akun), tidak perlu load data lagi karena sudah fresh
     if (!skipLoad) {
       await loadState();
     }
@@ -246,9 +241,9 @@ async function enterApp(familyId, skipLoad = false){
     initScanPanel();
     
     setTimeout(() => {
-      loader.style.opacity = '0';
+      if(loader) loader.style.opacity = '0';
       setTimeout(() => {
-        loader.style.display = 'none';
+        if(loader) loader.style.display = 'none';
         document.getElementById('appShell').style.display='block';
         renderAll();
       }, 400); 
@@ -256,11 +251,10 @@ async function enterApp(familyId, skipLoad = false){
   }, 10);
 }
 
-// PERBAIKAN FUNGSI LOGOUT KUNCI APLIKASI
 function lockApp(){
   state = null;
-  localStorage.removeItem('kr_session'); // Hapus ingatan perangkat ini
-  window.location.reload(); // Muat ulang layar
+  localStorage.removeItem('kr_session');
+  window.location.reload(); 
 }
 
 /* ============================= HELPERS ============================= */
@@ -1193,14 +1187,14 @@ function renderAll(){
 
 /* ============================= INIT & PINTU GERBANG (LOGIN OTOMATIS) ============================= */
 (async function initAuthGate(){
-  // 1. Cek apakah perangkat ini masih menyimpan sesi/ingatan
+  // Mengecek "ingatan" di perangkat ini
   const session = localStorage.getItem('kr_session');
   
   if (session) {
-    // Jika ingat, langsung tembak masuk tanpa load form login
+    // Jika ingat, langsung masuk
     await enterApp(session, false);
   } else {
-    // Jika lupa (atau belum pernah login), baru tampilkan form
+    // Jika lupa (belum pernah), minta login ke server
     const auth = await loadFamilyAuth();
     showAuthForm(auth ? 'auth-login' : 'auth-setup');
     await refreshSetupTab();
