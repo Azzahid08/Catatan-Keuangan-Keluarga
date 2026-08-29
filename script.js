@@ -1,6 +1,6 @@
 /* ============================= CONFIG & API ============================= */
 // HAPUS URL DI BAWAH INI, DAN PASTE URL BARU YANG BARUSAN KAMU COPY:
-const API_URL = "PASTE_URL_BARU_KAMU_DI_SINI";
+const API_URL = "https://script.google.com/macros/s/AKfycbx5l4iVFktKaZJAtPYSWuHyko4x5MMbf0rfgJBl3PEynr6QW8vbp3WWYGmbr-7NnZN1/exec";
 
 /* ============================= DATA & STORAGE ============================= */
 const MONTHS = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
