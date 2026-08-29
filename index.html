@@ -60,29 +60,29 @@ h1,h2,h3,.display{font-family:'Fraunces',serif;}
 }
 .password-wrapper input {
   width: 100%;
-  padding-right: 60px !important; /* Memberi ruang agar teks sandi tidak menabrak tombol */
+  padding-right: 40px !important; 
 }
-/* Menyembunyikan ikon mata bawaan dari browser Edge/Chrome */
+/* Menyembunyikan ikon mata bawaan browser Edge/Chrome */
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
     display: none;
 }
 .toggle-password {
   position: absolute;
-  right: 6px;
-  background: var(--sage-pale);
-  color: var(--forest);
+  right: 10px;
+  background: transparent;
+  color: #606770; /* Warna abu-abu profesional seperti FB */
   border: none;
-  border-radius: 6px;
   cursor: pointer;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 5px 10px;
-  transition: 0.15s;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
 }
 .toggle-password:hover {
-  background: var(--sage);
-  color: #fff;
+  color: #1c1e21; /* Lebih gelap sedikit saat di-hover */
+  background: transparent;
 }
 
 /* header */
@@ -305,6 +305,7 @@ footer.credit{text-align:center;color:#9ab293;font-size:11px;margin-top:30px;}
 
     <div class="auth-tabs">
       <button class="auth-tab-btn active" data-authtab="login">Masuk</button>
+      <!-- Perubahan: Teks Tab menjadi Buat Akun -->
       <button class="auth-tab-btn" data-authtab="setup">Buat Akun</button>
     </div>
 
@@ -318,13 +319,17 @@ footer.credit{text-align:center;color:#9ab293;font-size:11px;margin-top:30px;}
         <label>Buat Kata Sandi</label>
         <div class="password-wrapper">
           <input type="password" id="setup-password" autocomplete="new-password">
-          <button type="button" class="toggle-password" onclick="togglePassword('setup-password', this)">Lihat</button>
+          <button type="button" class="toggle-password" onclick="togglePassword('setup-password', this)">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+          </button>
         </div>
         
         <label>Ulangi Kata Sandi</label>
         <div class="password-wrapper">
           <input type="password" id="setup-password2" autocomplete="new-password">
-          <button type="button" class="toggle-password" onclick="togglePassword('setup-password2', this)">Lihat</button>
+          <button type="button" class="toggle-password" onclick="togglePassword('setup-password2', this)">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+          </button>
         </div>
         
         <button class="btn btn-primary" id="setup-submit" style="width:100%;margin-top:4px;">Buat &amp; Masuk</button>
@@ -343,7 +348,9 @@ footer.credit{text-align:center;color:#9ab293;font-size:11px;margin-top:30px;}
       <label>Kata Sandi</label>
       <div class="password-wrapper">
         <input type="password" id="login-password" autocomplete="current-password" placeholder="Masukkan kata sandi">
-        <button type="button" class="toggle-password" onclick="togglePassword('login-password', this)">Lihat</button>
+        <button type="button" class="toggle-password" onclick="togglePassword('login-password', this)">
+          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+        </button>
       </div>
 
       <button class="btn btn-primary" id="login-submit" style="width:100%;margin-top:4px;">Masuk</button>
@@ -525,7 +532,9 @@ footer.credit{text-align:center;color:#9ab293;font-size:11px;margin-top:30px;}
         <div style="display:flex;gap:8px;margin-top:6px;">
           <div class="password-wrapper" style="flex:1; margin-bottom:0;">
             <input type="password" id="apikey-input" placeholder="gsk_...">
-            <button type="button" class="toggle-password" onclick="togglePassword('apikey-input', this)">Lihat</button>
+            <button type="button" class="toggle-password" onclick="togglePassword('apikey-input', this)">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+            </button>
           </div>
           <button class="btn btn-primary btn-sm" id="apikey-save" style="white-space:nowrap;">Simpan Key</button>
         </div>
