@@ -1,6 +1,6 @@
 /* ============================= CONFIG & API ============================= */
-// URL Web App dari Google Apps Script milikmu
-const API_URL = "https://script.google.com/macros/s/AKfycbyYOAK2ZtqLzv24bmtxRgQwHRNbhvQibIj6reXloHuSOs6IZrZEDBx8Bum5j9mPw9nB/exec";
+// HAPUS URL DI BAWAH INI, DAN PASTE URL BARU YANG BARUSAN KAMU COPY:
+const API_URL = "PASTE_URL_BARU_KAMU_DI_SINI";
 
 /* ============================= DATA & STORAGE ============================= */
 const MONTHS = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
@@ -12,16 +12,22 @@ let state = null;
 let saveTimer = null;
 let editingLedgerId = null;
 
-// Memaksa simpan seketika (tanpa jeda) agar pendaftaran akun tidak tertimpa
+// Memaksa simpan seketika (dengan Alarm Error)
 async function forceSave() {
   try {
-    await fetch(API_URL, {
+    const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ action: "syncState", stateData: JSON.stringify(state) })
     });
+    
+    if (!res.ok) {
+      alert("⚠️ SISTEM MENOLAK DATA! Pastikan file ganda di Apps Script sudah dihapus dan URL-nya benar.");
+      return;
+    }
     console.log("Data berhasil disinkronkan ke Google Sheets");
   } catch(e) {
+    alert("⚠️ GAGAL TERSAMBUNG KE DATABASE! URL API di kodinganmu salah atau belum di-Deploy ulang.");
     console.error("Gagal menyimpan ke Google Sheets", e);
   }
 }
