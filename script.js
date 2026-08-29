@@ -1216,9 +1216,9 @@ function togglePassword(inputId, btnElement) {
   const input = document.getElementById(inputId);
   if (input.type === "password") {
     input.type = "text";
-    btnElement.textContent = "🙈"; // Mengubah ikon menjadi mata tertutup
+    btnElement.textContent = "Tutup"; // Mengubah tulisan jadi Tutup
   } else {
     input.type = "password";
-    btnElement.textContent = "👁️"; // Mengubah ikon menjadi mata terbuka
+    btnElement.textContent = "Lihat"; // Mengubah tulisan jadi Lihat
   }
 }
