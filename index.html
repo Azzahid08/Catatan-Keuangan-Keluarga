@@ -51,6 +51,30 @@ h1,h2,h3,.display{font-family:'Fraunces',serif;}
 .whoami{font-size:12px;color:#5c6c55;font-weight:600;display:flex;align-items:center;gap:8px;background:var(--sage-paler);padding:6px 10px;border-radius:999px;}
 .whoami button{border:none;background:none;color:var(--forest);font-weight:700;text-decoration:underline;cursor:pointer;font-size:11.5px;}
 
+/* FITUR LIHAT PASSWORD CSS */
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.password-wrapper input {
+  width: 100%;
+  padding-right: 40px !important; 
+}
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* header */
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
 .brand{display:flex;align-items:center;gap:10px;}
@@ -275,16 +299,26 @@ footer.credit{text-align:center;color:#9ab293;font-size:11px;margin-top:30px;}
       <button class="auth-tab-btn" data-authtab="setup">Buat Akun</button>
     </div>
 
+    <!-- FORM BUAT AKUN -->
     <div class="auth-form" id="auth-setup">
       <div class="auth-note" style="margin-top:0;margin-bottom:14px;" id="setup-intro">Buat ID dan kata sandi untuk aplikasi ini. Semua anggota keluarga memakai ID &amp; kata sandi yang sama — ini untuk mencegah orang lain di luar keluarga membuka data keuangan kalian.</div>
       <div id="setup-fields">
         <label>ID Keluarga</label>
-        <input type="text" id="setup-familyid" placeholder="mis. Keluarga Fikri" autocomplete="off">
-        <label style="margin-top:10px;">Buat Kata Sandi</label>
-        <input type="password" id="setup-password" autocomplete="new-password">
-        <label style="margin-top:10px;">Ulangi Kata Sandi</label>
-        <input type="password" id="setup-password2" autocomplete="new-password">
-        <button class="btn btn-primary" id="setup-submit" style="width:100%;margin-top:16px;">Buat &amp; Masuk</button>
+        <input type="text" id="setup-familyid" placeholder="mis. Keluarga Fikri" autocomplete="off" style="margin-bottom:10px;">
+        
+        <label>Buat Kata Sandi</label>
+        <div class="password-wrapper">
+          <input type="password" id="setup-password" autocomplete="new-password">
+          <button type="button" class="toggle-password" onclick="togglePassword('setup-password', this)">👁️</button>
+        </div>
+        
+        <label>Ulangi Kata Sandi</label>
+        <div class="password-wrapper">
+          <input type="password" id="setup-password2" autocomplete="new-password">
+          <button type="button" class="toggle-password" onclick="togglePassword('setup-password2', this)">👁️</button>
+        </div>
+        
+        <button class="btn btn-primary" id="setup-submit" style="width:100%;margin-top:4px;">Buat &amp; Masuk</button>
         <div class="auth-error" id="setup-error" style="display:none;"></div>
       </div>
       <div id="setup-already-exists" style="display:none;">
@@ -292,12 +326,18 @@ footer.credit{text-align:center;color:#9ab293;font-size:11px;margin-top:30px;}
       </div>
     </div>
 
+    <!-- FORM MASUK -->
     <div class="auth-form active" id="auth-login">
       <label>ID Keluarga</label>
-      <input type="text" id="login-familyid" placeholder="mis. Keluarga Fikri" autocomplete="off">
-      <label style="margin-top:10px;">Kata Sandi</label>
-      <input type="password" id="login-password" autocomplete="current-password" placeholder="Masukkan kata sandi">
-      <button class="btn btn-primary" id="login-submit" style="width:100%;margin-top:16px;">Masuk</button>
+      <input type="text" id="login-familyid" placeholder="mis. Keluarga Fikri" autocomplete="off" style="margin-bottom:10px;">
+      
+      <label>Kata Sandi</label>
+      <div class="password-wrapper">
+        <input type="password" id="login-password" autocomplete="current-password" placeholder="Masukkan kata sandi">
+        <button type="button" class="toggle-password" onclick="togglePassword('login-password', this)">👁️</button>
+      </div>
+
+      <button class="btn btn-primary" id="login-submit" style="width:100%;margin-top:4px;">Masuk</button>
       <div class="auth-error" id="login-error" style="display:none;"></div>
       <div class="auth-note">
         <button id="forgotLink" style="border:none;background:none;color:var(--forest);font-weight:700;text-decoration:underline;cursor:pointer;padding:0;font-size:11px;">Lupa kata sandi?</button>
@@ -474,7 +514,10 @@ footer.credit{text-align:center;color:#9ab293;font-size:11px;margin-top:30px;}
       <div class="apikey-row" id="apikeyRow">
         <label style="margin-bottom:0;">🔑 Groq API Key <span style="font-weight:500;color:#8a9a82;">(Gratis 100%, tersimpan lokal di perangkatmu)</span></label>
         <div style="display:flex;gap:8px;margin-top:6px;">
-          <input type="password" id="apikey-input" placeholder="gsk_...">
+          <div class="password-wrapper" style="flex:1; margin-bottom:0;">
+            <input type="password" id="apikey-input" placeholder="gsk_...">
+            <button type="button" class="toggle-password" onclick="togglePassword('apikey-input', this)">👁️</button>
+          </div>
           <button class="btn btn-primary btn-sm" id="apikey-save" style="white-space:nowrap;">Simpan Key</button>
         </div>
         <div style="font-size:11px;color:#8a9a82;margin-top:6px;">

@@ -1185,16 +1185,13 @@ function renderAll(){
   if(active==='budgeting') renderBudgeting();
 }
 
-/* ============================= INIT & PINTU GERBANG (LOGIN OTOMATIS) ============================= */
+/* ============================= INIT & PINTU GERBANG ============================= */
 (async function initAuthGate(){
-  // Mengecek "ingatan" di perangkat ini
   const session = localStorage.getItem('kr_session');
   
   if (session) {
-    // Jika ingat, langsung masuk
     await enterApp(session, false);
   } else {
-    // Jika lupa (belum pernah), minta login ke server
     const auth = await loadFamilyAuth();
     showAuthForm(auth ? 'auth-login' : 'auth-setup');
     await refreshSetupTab();
@@ -1213,3 +1210,15 @@ function renderAll(){
     }, 1200); 
   }
 })();
+
+/* ============================= FITUR LIHAT PASSWORD ============================= */
+function togglePassword(inputId, btnElement) {
+  const input = document.getElementById(inputId);
+  if (input.type === "password") {
+    input.type = "text";
+    btnElement.textContent = "🙈"; // Mengubah ikon menjadi mata tertutup
+  } else {
+    input.type = "password";
+    btnElement.textContent = "👁️"; // Mengubah ikon menjadi mata terbuka
+  }
+}
